@@ -27,8 +27,8 @@ export default function RecipesScreen() {
           <View style={styles.headerButtons}>
             <TouchableOpacity
               style={styles.profileButton}
-              onPress={() => alert("Profil kommer snart")}
-              accessibilityLabel="Profil"
+              onPress={() => router.push("/(auth)/login")}
+              accessibilityLabel="Logga in"
             >
               <Ionicons
                 name="person-outline"

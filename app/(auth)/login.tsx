@@ -1,20 +1,51 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { apiRequest } from "../../services/api";
 
 export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!username.trim() || !password) {
       Alert.alert("Fyll i alla fält", "Ange e-post och lösenord.");
       return;
     }
 
-    Alert.alert("Formuläret fungerar", "Nästa steg är att koppla inloggningen till backend.");
+    setLoading(true);
+
+    try {
+      const result = await apiRequest<{
+        message: string;
+        token: string;
+        user: {
+          id: number;
+          name: string;
+          email: string;
+        };
+      }>("/auth/login", {
+        method: "POST",
+        body: {
+          email: username.trim(),
+          password,
+        },
+      });
+
+      Alert.alert("Inloggad", `Välkommen ${result.user.name}!`, [
+        {
+          text: "Fortsätt",
+          onPress: () => router.replace("/recipes"),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert("Kunde inte logga in", error instanceof Error ? error.message : "Ett oväntat fel uppstod.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -78,8 +109,9 @@ export default function LoginScreen() {
                 <Pressable
                   style={styles.primaryButton}
                   onPress={handleLogin}
+                  disabled={loading}
                 >
-                  <Text style={styles.buttonText}>Logga in</Text>
+                  {loading ? <ActivityIndicator color="#111111" /> : <Text style={styles.buttonText}>Logga in</Text>}
                 </Pressable>
               </View>
 

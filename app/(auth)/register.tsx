@@ -1,20 +1,53 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { apiRequest } from "../../services/api";
 
 export default function RegisterScreen() {
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function handleRegister() {
-    if (!username.trim() || !password) {
-      Alert.alert("Fyll i alla fält", "Ange e-post och lösenord.");
+  async function handleRegister() {
+    if (!name.trim() || !username.trim() || !password) {
+      Alert.alert("Fyll i alla fält", "Ange namn, e-post och lösenord.");
       return;
     }
 
-    Alert.alert("Formuläret fungerar", "Nästa steg är att koppla registreringen till backend.");
+    const email = username.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(email)) {
+      Alert.alert("Ogiltig e-postadress", "Ange en giltig e-postadress, exempelvis namn@gmail.com.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await apiRequest<{ message: string }>("/auth/register", {
+        method: "POST",
+        body: {
+          name: name.trim(),
+          email,
+          password,
+        },
+      });
+
+      Alert.alert("Kontot är skapat", result.message, [
+        {
+          text: "Logga in",
+          onPress: () => router.replace("/(auth)/login"),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert("Kunde inte skapa konto", error instanceof Error ? error.message : "Ett oväntat fel uppstod.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -41,12 +74,25 @@ export default function RegisterScreen() {
               <View style={styles.form}>
                 <TextInput
                   style={styles.input}
+                  placeholder="Namn"
+                  placeholderTextColor="#858585"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  accessibilityLabel="Namn"
+                  returnKeyType="next"
+                />
+
+                <TextInput
+                  style={styles.input}
                   placeholder="E-post"
                   placeholderTextColor="#858585"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  keyboardType="email-address"
                   accessibilityLabel="E-post"
                   returnKeyType="next"
                 />
@@ -60,6 +106,7 @@ export default function RegisterScreen() {
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
+                    autoCorrect={false}
                     accessibilityLabel="Lösenord"
                     returnKeyType="done"
                   />
@@ -81,8 +128,9 @@ export default function RegisterScreen() {
                 <Pressable
                   style={styles.primaryButton}
                   onPress={handleRegister}
+                  disabled={loading}
                 >
-                  <Text style={styles.buttonText}>Skapa konto</Text>
+                  {loading ? <ActivityIndicator color="#111111" /> : <Text style={styles.buttonText}>Skapa konto</Text>}
                 </Pressable>
               </View>
 
@@ -90,7 +138,7 @@ export default function RegisterScreen() {
                 <Text style={styles.switchText}>Har du redan ett konto? </Text>
 
                 <Link
-                  href="/login"
+                  href="/(auth)/login"
                   asChild
                 >
                   <Pressable accessibilityRole="link">
