@@ -1,9 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { apiRequest } from "../services/api";
+
+type Recipe = {
+  id: number;
+  title: string;
+  cookingTime: number;
+  difficulty: "Enkel" | "Medel" | "Svår";
+  image: string;
+  servings: number;
+  ingredients: { id: number; text: string }[];
+  instructions: { id: number; text: string }[];
+};
 
 export default function AddRecipeScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const isEditing = Boolean(id);
+
   const [title, setTitle] = useState("");
   const [cookingTime, setCookingTime] = useState("");
   const [difficulty, setDifficulty] = useState<"Enkel" | "Medel" | "Svår">("Enkel");
@@ -12,6 +27,50 @@ export default function AddRecipeScreen() {
   const [ingredients, setIngredients] = useState([""]);
   const [instructions, setInstructions] = useState([""]);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(Boolean(id));
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      async function loadRecipe() {
+        if (!id) {
+          setLoading(false);
+          return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+          const recipe = await apiRequest<Recipe>(`/recipes/${id}`);
+
+          if (!active) return;
+
+          setTitle(recipe.title);
+          setCookingTime(String(recipe.cookingTime));
+          setDifficulty(recipe.difficulty);
+          setServings(String(recipe.servings));
+          setImage(recipe.image || "");
+          setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients.map((item) => item.text) : [""]);
+          setInstructions(recipe.instructions.length > 0 ? recipe.instructions.map((item) => item.text) : [""]);
+        } catch (error) {
+          if (active) {
+            setError(error instanceof Error ? error.message : "Kunde inte hämta receptet.");
+          }
+        } finally {
+          if (active) setLoading(false);
+        }
+      }
+
+      loadRecipe();
+
+      return () => {
+        active = false;
+      };
+    }, [id]),
+  );
 
   function updateIngredient(index: number, value: string) {
     setIngredients((current) => current.map((item, i) => (i === index ? value : item)));
@@ -21,19 +80,76 @@ export default function AddRecipeScreen() {
     setInstructions((current) => current.map((item, i) => (i === index ? value : item)));
   }
 
-  function handleSave() {
+  async function handleSave() {
+    if (saving) return;
+
     if (!title.trim() || !cookingTime.trim() || !servings.trim() || ingredients.some((item) => !item.trim()) || instructions.some((item) => !item.trim())) {
       setError("Fyll i alla obligatoriska fält innan du fortsätter.");
       return;
     }
 
-    if (Number(cookingTime) <= 0 || Number(servings) <= 0 || !Number.isFinite(Number(cookingTime)) || !Number.isFinite(Number(servings))) {
-      setError("Tillagningstid och portioner måste vara positiva tal.");
+    if (!Number.isInteger(Number(cookingTime)) || Number(cookingTime) <= 0 || !Number.isInteger(Number(servings)) || Number(servings) <= 0) {
+      setError("Tillagningstid och portioner måste vara positiva heltal.");
+      return;
+    }
+
+    if (image.trim() && !/^https?:\/\/\S+$/i.test(image.trim())) {
+      setError("Ange en giltig bildlänk som börjar med http:// eller https://.");
       return;
     }
 
     setError("");
-    alert("Formuläret fungerar! Nästa steg är att spara receptet i databasen.");
+    setSaving(true);
+
+    try {
+      const recipeData = {
+        title: title.trim(),
+        cookingTime: Number(cookingTime),
+        difficulty,
+        servings: Number(servings),
+        image: image.trim(),
+        ingredients: ingredients.map((item) => item.trim()),
+        instructions: instructions.map((item) => item.trim()),
+      };
+
+      if (isEditing && id) {
+        await apiRequest(`/recipes/${id}`, {
+          method: "PUT",
+          body: recipeData,
+        });
+
+        Alert.alert("Recept uppdaterat", "Dina ändringar har sparats.", [
+          {
+            text: "OK",
+            onPress: () => router.replace(`/recipe/${id}`),
+          },
+        ]);
+      } else {
+        await apiRequest("/recipes", {
+          method: "POST",
+          body: recipeData,
+        });
+
+        Alert.alert("Recept sparat", "Ditt recept har lagts till.", [
+          {
+            text: "OK",
+            onPress: () => router.replace("/recipes"),
+          },
+        ]);
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Kunde inte spara receptet. Försök igen.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.loadingScreen}>
+        <Text style={styles.loadingText}>Hämtar recept...</Text>
+      </View>
+    );
   }
 
   return (
@@ -49,6 +165,7 @@ export default function AddRecipeScreen() {
             <TouchableOpacity
               onPress={() => router.back()}
               accessibilityLabel="Tillbaka"
+              accessibilityRole="button"
             >
               <Ionicons
                 name="chevron-back"
@@ -57,7 +174,7 @@ export default function AddRecipeScreen() {
               />
             </TouchableOpacity>
 
-            <Text style={styles.headerTitle}>Nytt recept</Text>
+            <Text style={styles.headerTitle}>{isEditing ? "Redigera recept" : "Nytt recept"}</Text>
 
             <View style={styles.headerSpacer} />
           </View>
@@ -67,7 +184,7 @@ export default function AddRecipeScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.intro}>Lägg till ett favoritrecept i din samling.</Text>
+            <Text style={styles.intro}>{isEditing ? "Uppdatera informationen i ditt recept." : "Lägg till ett favoritrecept i din samling."}</Text>
 
             <Text style={styles.label}>Receptnamn *</Text>
             <TextInput
@@ -76,7 +193,7 @@ export default function AddRecipeScreen() {
               placeholderTextColor="#777"
               value={title}
               onChangeText={setTitle}
-              maxLength={100}
+              maxLength={150}
             />
 
             <View style={styles.twoColumns}>
@@ -112,6 +229,8 @@ export default function AddRecipeScreen() {
                   key={level}
                   style={[styles.difficultyButton, difficulty === level && styles.difficultyButtonActive]}
                   onPress={() => setDifficulty(level)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: difficulty === level }}
                 >
                   <Text style={[styles.difficultyText, difficulty === level && styles.difficultyTextActive]}>{level}</Text>
                 </TouchableOpacity>
@@ -150,6 +269,7 @@ export default function AddRecipeScreen() {
                 style={styles.itemRow}
               >
                 <Text style={styles.itemNumber}>{index + 1}.</Text>
+
                 <TextInput
                   style={[styles.input, styles.itemInput]}
                   placeholder="T.ex. 2 dl mjölk"
@@ -157,10 +277,12 @@ export default function AddRecipeScreen() {
                   value={ingredient}
                   onChangeText={(value) => updateIngredient(index, value)}
                 />
+
                 {ingredients.length > 1 && (
                   <TouchableOpacity
                     onPress={() => setIngredients((current) => current.filter((_, i) => i !== index))}
                     accessibilityLabel={`Ta bort ingrediens ${index + 1}`}
+                    accessibilityRole="button"
                   >
                     <Ionicons
                       name="close-circle-outline"
@@ -193,6 +315,7 @@ export default function AddRecipeScreen() {
                 style={styles.instructionInputRow}
               >
                 <Text style={styles.instructionNumber}>{index + 1}</Text>
+
                 <TextInput
                   style={[styles.input, styles.instructionInput]}
                   placeholder="Beskriv steget..."
@@ -202,10 +325,12 @@ export default function AddRecipeScreen() {
                   multiline
                   textAlignVertical="top"
                 />
+
                 {instructions.length > 1 && (
                   <TouchableOpacity
                     onPress={() => setInstructions((current) => current.filter((_, i) => i !== index))}
                     accessibilityLabel={`Ta bort instruktion ${index + 1}`}
+                    accessibilityRole="button"
                   >
                     <Ionicons
                       name="close-circle-outline"
@@ -220,15 +345,18 @@ export default function AddRecipeScreen() {
             {error !== "" && <Text style={styles.error}>{error}</Text>}
 
             <TouchableOpacity
-              style={styles.saveButton}
+              style={[styles.saveButton, saving && { opacity: 0.6 }]}
               onPress={handleSave}
+              disabled={saving}
+              accessibilityRole="button"
+              accessibilityLabel={isEditing ? "Spara ändringar" : "Spara recept"}
             >
               <Ionicons
                 name="checkmark-circle-outline"
                 size={22}
                 color="#111"
               />
-              <Text style={styles.saveButtonText}>Spara recept</Text>
+              <Text style={styles.saveButtonText}>{saving ? "Sparar..." : isEditing ? "Spara ändringar" : "Spara recept"}</Text>
             </TouchableOpacity>
 
             <Text style={styles.requiredNote}>* Obligatoriska fält</Text>
@@ -417,5 +545,15 @@ const styles = StyleSheet.create({
     color: "#555",
     textAlign: "center",
     marginTop: 12,
+  },
+  loadingScreen: {
+    flex: 1,
+    backgroundColor: "#E0EEEE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#111",
   },
 });

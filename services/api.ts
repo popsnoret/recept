@@ -1,3 +1,5 @@
+import * as SecureStore from "expo-secure-store";
+
 const API_URL = "http://192.168.0.65:3000/api";
 
 type ApiOptions = {
@@ -11,8 +13,12 @@ export async function apiRequest<T>(endpoint: string, options: ApiOptions = {}):
     "Content-Type": "application/json",
   };
 
-  if (options.token) {
-    headers.Authorization = `Bearer ${options.token}`;
+  const token = options.token ?? (await SecureStore.getItemAsync("authToken"));
+
+  console.log("Token finns:", Boolean(token), "Endpoint:", endpoint);
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   let response: Response;

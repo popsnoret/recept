@@ -3,6 +3,7 @@ const pool = require("./config/database");
 const authRoutes = require("./routes/auth");
 const authenticateToken = require("./middleware/auth");
 const recipeRoutes = require("./routes/recipes");
+const favoriteRoutes = require("./routes/favorites");
 
 const app = express();
 const PORT = 3000;
@@ -12,6 +13,7 @@ app.use(express.json());
 // Registrering och inloggning
 app.use("/api/auth", authRoutes);
 app.use("/api/recipes", recipeRoutes);
+app.use("/api/favorites", favoriteRoutes);
 
 // Testa att API:t fungerar
 app.get("/", (req, res) => {

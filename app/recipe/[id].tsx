@@ -1,28 +1,102 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { recipes } from "../../data/recipes";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Alert, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { apiRequest } from "../../services/api";
+
+type Recipe = {
+  id: number;
+  title: string;
+  cookingTime: number;
+  difficulty: "Enkel" | "Medel" | "Svår";
+  image: string;
+  servings: number;
+  ingredients: { id: number; text: string }[];
+  instructions: { id: number; text: string }[];
+};
+
+type Favorite = {
+  id: number;
+};
 
 export default function RecipeDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const recipe = recipes.find((item) => item.id === Number(id));
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
   const [checkedInstructions, setCheckedInstructions] = useState<number[]>([]);
-  const [rating, setRating] = useState(0);
-  const [timerStarted, setTimerStarted] = useState(false);
 
-  if (!recipe) {
-    return (
-      <View style={styles.screen}>
-        <Text>Receptet kunde inte hittas.</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text>Tillbaka</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      async function loadRecipe() {
+        setLoading(true);
+
+        try {
+          const result = await apiRequest<Recipe>(`/recipes/${id}`);
+
+          if (active) {
+            setRecipe(result);
+          }
+
+          try {
+            const favorites = await apiRequest<Favorite[]>("/favorites");
+
+            if (active) {
+              setIsFavorite(favorites.some((favorite) => Number(favorite.id) === Number(id)));
+            }
+          } catch (error) {
+            console.error("Kunde inte hämta favoriter:", error);
+          }
+        } catch (error) {
+          if (active) {
+            Alert.alert("Kunde inte hämta recept", error instanceof Error ? error.message : "Något gick fel.");
+          }
+        } finally {
+          if (active) {
+            setLoading(false);
+          }
+        }
+      }
+
+      loadRecipe();
+
+      return () => {
+        active = false;
+      };
+    }, [id]),
+  );
+
+  async function toggleFavorite() {
+    if (favoriteLoading) return;
+
+    setFavoriteLoading(true);
+
+    try {
+      if (isFavorite) {
+        await apiRequest(`/favorites/${id}`, {
+          method: "DELETE",
+        });
+
+        setIsFavorite(false);
+      } else {
+        await apiRequest(`/favorites/${id}`, {
+          method: "POST",
+        });
+
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      Alert.alert("Kunde inte uppdatera favorit", error instanceof Error ? error.message : "Något gick fel.");
+    } finally {
+      setFavoriteLoading(false);
+    }
   }
 
   function toggleIngredient(ingredientId: number) {
@@ -31,6 +105,74 @@ export default function RecipeDetailsScreen() {
 
   function toggleInstruction(instructionId: number) {
     setCheckedInstructions((current) => (current.includes(instructionId) ? current.filter((item) => item !== instructionId) : [...current, instructionId]));
+  }
+
+  function editRecipe() {
+    router.push({
+      pathname: "/add-recipe",
+      params: { id: String(id) },
+    });
+  }
+
+  function confirmDelete() {
+    Alert.alert("Ta bort recept", `Vill du ta bort "${recipe?.title}"? Det går inte att ångra.`, [
+      {
+        text: "Avbryt",
+        style: "cancel",
+      },
+      {
+        text: "Ta bort",
+        style: "destructive",
+        onPress: deleteRecipe,
+      },
+    ]);
+  }
+
+  async function deleteRecipe() {
+    if (deleting) return;
+
+    setDeleting(true);
+
+    try {
+      await apiRequest(`/recipes/${id}`, {
+        method: "DELETE",
+      });
+
+      Alert.alert("Recept borttaget", "Receptet har tagits bort.", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/recipes"),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert("Kunde inte ta bort receptet", error instanceof Error ? error.message : "Något gick fel.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.screen}>
+        <ActivityIndicator
+          size="large"
+          color="#FFFFFF"
+          style={{ marginTop: 40 }}
+        />
+      </View>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <View style={styles.screen}>
+        <Text style={styles.errorText}>Receptet kunde inte hittas.</Text>
+
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backText}>Tillbaka</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
@@ -46,6 +188,7 @@ export default function RecipeDetailsScreen() {
             <TouchableOpacity
               onPress={() => router.back()}
               accessibilityLabel="Tillbaka"
+              accessibilityRole="button"
             >
               <Ionicons
                 name="chevron-back"
@@ -53,7 +196,6 @@ export default function RecipeDetailsScreen() {
                 color="#111"
               />
             </TouchableOpacity>
-
             <Text
               style={styles.title}
               numberOfLines={1}
@@ -61,11 +203,22 @@ export default function RecipeDetailsScreen() {
               {recipe.title}
             </Text>
 
-            <TouchableOpacity accessibilityLabel="Favorit">
+            <TouchableOpacity
+              onPress={toggleFavorite}
+              disabled={favoriteLoading}
+              accessibilityRole="button"
+              accessibilityLabel={isFavorite ? "Ta bort favorit" : "Lägg till favorit"}
+              style={{
+                width: 44,
+                height: 44,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Ionicons
-                name="heart"
-                size={25}
-                color="#E52D35"
+                name={isFavorite ? "heart" : "heart-outline"}
+                size={34}
+                color={isFavorite ? "#E52D35" : "#555"}
               />
             </TouchableOpacity>
           </View>
@@ -91,15 +244,6 @@ export default function RecipeDetailsScreen() {
 
             <View style={styles.infoItem}>
               <Ionicons
-                name="flame-outline"
-                size={15}
-                color="#222"
-              />
-              <Text style={styles.infoText}>Ugn</Text>
-            </View>
-
-            <View style={styles.infoItem}>
-              <Ionicons
                 name="people-outline"
                 size={15}
                 color="#222"
@@ -109,7 +253,7 @@ export default function RecipeDetailsScreen() {
           </View>
 
           <Image
-            source={{ uri: recipe.image }}
+            source={recipe.image ? { uri: recipe.image } : require("../../assets/images/icon.png")}
             style={styles.recipeImage}
             resizeMode="cover"
           />
@@ -175,54 +319,39 @@ export default function RecipeDetailsScreen() {
             })}
           </View>
 
-          <TouchableOpacity
-            style={styles.timerButton}
-            onPress={() => setTimerStarted((current) => !current)}
-          >
-            <Ionicons
-              name={timerStarted ? "pause" : "play"}
-              size={17}
-              color="#111"
-            />
-            <Text style={styles.timerText}>{timerStarted ? "Pausa timer" : `Starta timer (${recipe.cookingTime} minuter)`}</Text>
-          </TouchableOpacity>
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={editRecipe}
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="create-outline"
+                size={20}
+                color="#111"
+              />
+              <Text style={styles.editButtonText}>Redigera recept</Text>
+            </TouchableOpacity>
 
-          {/* <SectionHeading title="Betyg" />
-
-          <View style={styles.ratingRow}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity
-                key={star}
-                onPress={() => setRating(star)}
-                accessibilityLabel={`${star} av 5 stjärnor`}
-              >
-                <Ionicons
-                  name={star <= rating ? "star" : "star-outline"}
-                  size={32}
-                  color={star <= rating ? "#F2C500" : "#777"}
-                />
-              </TouchableOpacity>
-            ))}
-          </View> */}
-
-          <SectionHeading title="Historik" />
-
-          <View style={styles.historyCard}>
-            <Text style={styles.historyText}>
-              Receptet hämtades från:
-              {"\n"}Min receptsamling
-            </Text>
-            <Text style={styles.historyDate}>2026-10-28</Text>
-          </View>
-
-          <View style={styles.historyCard}>
-            <Text style={styles.historyText}>Uppdaterades av dig</Text>
-            <Text style={styles.historyDate}>2026-10-28</Text>
-          </View>
-
-          <View style={styles.historyCard}>
-            <Text style={styles.historyText}>Recept tillagt</Text>
-            <Text style={styles.historyDate}>2026-10-28</Text>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={confirmDelete}
+              disabled={deleting}
+              accessibilityRole="button"
+            >
+              {deleting ? (
+                <ActivityIndicator color="#B4232C" />
+              ) : (
+                <>
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color="#B4232C"
+                  />
+                  <Text style={styles.deleteButtonText}>Ta bort recept</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
@@ -363,46 +492,59 @@ const styles = StyleSheet.create({
     borderColor: "#438847",
   },
   instructionText: {
+    flex: 1,
     fontSize: 17,
+    color: "#111",
   },
-  timerButton: {
-    minHeight: 42,
-    backgroundColor: "#AEC9B7",
-    borderRadius: 24,
-    marginHorizontal: 16,
-    marginVertical: 16,
+  actions: {
+    backgroundColor: "#F7FAFA",
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 24,
+    gap: 10,
+  },
+  editButton: {
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: "#DDECEC",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    borderWidth: 1,
+    borderColor: "#B7CECE",
   },
-  timerText: {
-    fontSize: 15,
+  editButtonText: {
     color: "#111",
+    fontSize: 16,
+    fontWeight: "700",
   },
-  ratingRow: {
+  deleteButton: {
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: "#FFF5F5",
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-    paddingVertical: 12,
-    backgroundColor: "#F7FAFA",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#E8C5C5",
   },
-  historyCard: {
-    backgroundColor: "#F7FAFA",
-    marginHorizontal: 12,
-    marginTop: 6,
-    padding: 10,
-    alignItems: "center",
+  deleteButtonText: {
+    color: "#B4232C",
+    fontSize: 16,
+    fontWeight: "700",
   },
-  historyText: {
-    fontSize: 15,
+  errorText: {
+    color: "#FFFFFF",
     textAlign: "center",
-    color: "#222",
+    marginTop: 35,
+    fontSize: 17,
   },
-  historyDate: {
-    fontSize: 10,
-    color: "#888",
-    marginTop: 4,
+  backText: {
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginTop: 16,
+    fontSize: 16,
   },
 });

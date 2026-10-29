@@ -1,20 +1,78 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useState } from "react";
-import { Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { recipes } from "../data/recipes";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Alert, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { apiRequest } from "../services/api";
+
+type Recipe = {
+  id: number;
+  title: string;
+  cookingTime: number;
+  difficulty: "Enkel" | "Medel" | "Svår";
+  image: string;
+  servings: number;
+  ingredients: { id: number; text: string }[];
+  instructions: { id: number; text: string }[];
+};
 
 export default function RecipesScreen() {
   const [activeTab, setActiveTab] = useState("Recept");
-  const [favorites, setFavorites] = useState<string[]>(["1"]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingFavorites, setUpdatingFavorites] = useState<number[]>([]);
+
+  const loadRecipes = useCallback(async () => {
+    try {
+      const [recipeResult, favoriteResult] = await Promise.all([apiRequest<Recipe[]>("/recipes"), apiRequest<Recipe[]>("/favorites")]);
+
+      setRecipes(recipeResult);
+      setFavorites(favoriteResult.map((recipe) => String(recipe.id)));
+    } catch (error) {
+      Alert.alert("Kunde inte hämta recept", error instanceof Error ? error.message : "Något gick fel.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRecipes();
+    }, [loadRecipes]),
+  );
+
+  async function toggleFavorite(id: number) {
+    if (updatingFavorites.includes(id)) {
+      return;
+    }
+
+    const recipeId = String(id);
+    const wasFavorite = favorites.includes(recipeId);
+
+    setUpdatingFavorites((current) => [...current, id]);
+
+    try {
+      if (wasFavorite) {
+        await apiRequest(`/favorites/${id}`, {
+          method: "DELETE",
+        });
+
+        setFavorites((current) => current.filter((favorite) => favorite !== recipeId));
+      } else {
+        await apiRequest(`/favorites/${id}`, {
+          method: "POST",
+        });
+
+        setFavorites((current) => (current.includes(recipeId) ? current : [...current, recipeId]));
+      }
+    } catch (error) {
+      Alert.alert("Kunde inte uppdatera favoriter", error instanceof Error ? error.message : "Något gick fel.");
+    } finally {
+      setUpdatingFavorites((current) => current.filter((favoriteId) => favoriteId !== id));
+    }
+  }
 
   const visibleRecipes = activeTab === "Favoriter" ? recipes.filter((recipe) => favorites.includes(String(recipe.id))) : activeTab === "Listor" ? [] : recipes;
-
-  function toggleFavorite(id: number) {
-    const recipeId = String(id);
-
-    setFavorites((current) => (current.includes(recipeId) ? current.filter((favorite) => favorite !== recipeId) : [...current, recipeId]));
-  }
 
   return (
     <View style={styles.screen}>
@@ -68,65 +126,85 @@ export default function RecipesScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         >
-          {visibleRecipes.map((recipe) => {
-            const isFavorite = favorites.includes(String(recipe.id));
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color="#414747"
+              style={{ marginTop: 35 }}
+            />
+          ) : (
+            <>
+              {visibleRecipes.map((recipe) => {
+                const isFavorite = favorites.includes(String(recipe.id));
+                const isUpdating = updatingFavorites.includes(recipe.id);
 
-            return (
-              <TouchableOpacity
-                key={recipe.id}
-                style={styles.recipeCard}
-                onPress={() => router.push(`/recipe/${recipe.id}`)}
-              >
-                <Image
-                  source={{ uri: recipe.image }}
-                  style={styles.recipeImage}
-                />
-
-                <View style={styles.recipeInfo}>
-                  <Text
-                    style={styles.recipeTitle}
-                    numberOfLines={1}
+                return (
+                  <TouchableOpacity
+                    key={recipe.id}
+                    style={styles.recipeCard}
+                    onPress={() => router.push(`/recipe/${recipe.id}`)}
+                    activeOpacity={0.8}
                   >
-                    {recipe.title}
-                  </Text>
-
-                  <View style={styles.details}>
-                    <Ionicons
-                      name="time-outline"
-                      size={23}
-                      color="#414747"
+                    <Image
+                      source={recipe.image ? { uri: recipe.image } : require("../assets/images/icon.png")}
+                      style={styles.recipeImage}
                     />
-                    <Text style={styles.detailText}>{recipe.cookingTime} min</Text>
 
-                    <Ionicons
-                      name="restaurant-outline"
-                      size={23}
-                      color="#414747"
-                    />
-                    <Text style={styles.detailText}>{recipe.difficulty}</Text>
-                  </View>
-                </View>
+                    <View style={styles.recipeInfo}>
+                      <Text
+                        style={styles.recipeTitle}
+                        numberOfLines={1}
+                      >
+                        {recipe.title}
+                      </Text>
 
-                <TouchableOpacity
-                  style={styles.favoriteButton}
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    toggleFavorite(recipe.id);
-                  }}
-                  accessibilityLabel={isFavorite ? "Ta bort från favoriter" : "Lägg till i favoriter"}
-                >
-                  <Ionicons
-                    name={isFavorite ? "heart" : "heart-outline"}
-                    size={44}
-                    color={isFavorite ? "#E52D35" : "#000"}
-                  />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          })}
+                      <View style={styles.details}>
+                        <Ionicons
+                          name="time-outline"
+                          size={23}
+                          color="#414747"
+                        />
+                        <Text style={styles.detailText}>{recipe.cookingTime} min</Text>
 
-          {visibleRecipes.length === 0 && (
-            <Text style={styles.emptyText}>{activeTab === "Favoriter" ? "Du har inga favoriter ännu." : "Dina receptlistor kommer snart."}</Text>
+                        <Ionicons
+                          name="restaurant-outline"
+                          size={23}
+                          color="#414747"
+                        />
+                        <Text style={styles.detailText}>{recipe.difficulty}</Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.favoriteButton}
+                      onPress={(event) => {
+                        event.stopPropagation();
+                        toggleFavorite(recipe.id);
+                      }}
+                      disabled={isUpdating}
+                      accessibilityRole="button"
+                      accessibilityLabel={isFavorite ? "Ta bort från favoriter" : "Lägg till i favoriter"}
+                    >
+                      <Ionicons
+                        name={isFavorite ? "heart" : "heart-outline"}
+                        size={35}
+                        color={isFavorite ? "#E52D35" : "#000"}
+                      />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {visibleRecipes.length === 0 && (
+                <Text style={styles.emptyText}>
+                  {activeTab === "Favoriter"
+                    ? "Du har inga favoriter ännu."
+                    : activeTab === "Listor"
+                      ? "Dina receptlistor kommer snart."
+                      : "Du har inga recept ännu."}
+                </Text>
+              )}
+            </>
           )}
         </ScrollView>
       </View>
@@ -252,6 +330,8 @@ const styles = StyleSheet.create({
   favoriteButton: {
     marginLeft: 0,
     padding: 2,
+    width: 44,
+    height: 44,
   },
   emptyText: {
     textAlign: "center",

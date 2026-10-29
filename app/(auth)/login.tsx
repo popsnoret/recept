@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { apiRequest } from "../../services/api";
@@ -34,6 +35,15 @@ export default function LoginScreen() {
           password,
         },
       });
+
+      console.log("Token från servern:", Boolean(result.token));
+
+      await SecureStore.setItemAsync("authToken", result.token);
+      await SecureStore.setItemAsync("userId", String(result.user.id));
+      await SecureStore.setItemAsync("userName", result.user.name);
+      await SecureStore.setItemAsync("userEmail", result.user.email);
+
+      console.log("Token sparad:", Boolean(await SecureStore.getItemAsync("authToken")));
 
       Alert.alert("Inloggad", `Välkommen ${result.user.name}!`, [
         {
@@ -75,6 +85,7 @@ export default function LoginScreen() {
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  keyboardType="email-address"
                   accessibilityLabel="E-post"
                   returnKeyType="next"
                 />
@@ -90,6 +101,7 @@ export default function LoginScreen() {
                     autoCapitalize="none"
                     accessibilityLabel="Lösenord"
                     returnKeyType="done"
+                    onSubmitEditing={handleLogin}
                   />
 
                   <Pressable
@@ -110,6 +122,7 @@ export default function LoginScreen() {
                   style={styles.primaryButton}
                   onPress={handleLogin}
                   disabled={loading}
+                  accessibilityRole="button"
                 >
                   {loading ? <ActivityIndicator color="#111111" /> : <Text style={styles.buttonText}>Logga in</Text>}
                 </Pressable>
