@@ -1,3 +1,6 @@
+-- Creates the database tables for users and recipes.
+-- Each recipe belongs to a user and is deleted if that user is deleted.
+
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,

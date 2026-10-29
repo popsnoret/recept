@@ -1,6 +1,11 @@
+// Handles user registration and login.
+// Validates input, hashes passwords, and issues JWT tokens
+// when users successfully authenticate.
+
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const pool = require("../config/database");
+const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
@@ -105,8 +110,19 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    const token = jwt.sign(
+      {
+        userId: user.id,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "2h",
+      },
+    );
+
     return res.status(200).json({
       message: "Du är inloggad.",
+      token,
       user: {
         id: user.id,
         name: user.name,

@@ -1,6 +1,8 @@
 const express = require("express");
 const pool = require("./config/database");
 const authRoutes = require("./routes/auth");
+const authenticateToken = require("./middleware/auth");
+const recipeRoutes = require("./routes/recipes");
 
 const app = express();
 const PORT = 3000;
@@ -9,6 +11,7 @@ app.use(express.json());
 
 // Registrering och inloggning
 app.use("/api/auth", authRoutes);
+app.use("/api/recipes", recipeRoutes);
 
 // Testa att API:t fungerar
 app.get("/", (req, res) => {
@@ -38,7 +41,19 @@ app.get("/test", (req, res) => {
   res.send("Test fungerar!");
 });
 
-// Starta servern
-app.listen(PORT, () => {
-  console.log(`API:t körs på http://localhost:${PORT}`);
+// Protected route to verify that JWT authentication works
+app.get("/api/protected", authenticateToken, (req, res) => {
+  res.json({
+    message: "Du har tillgång till den skyddade resursen.",
+    userId: req.user.id,
+  });
 });
+
+// Starta servern endast när filen körs direkt.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`API:t körs på http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
