@@ -36,14 +36,10 @@ export default function LoginScreen() {
         },
       });
 
-      console.log("Token från servern:", Boolean(result.token));
-
       await SecureStore.setItemAsync("authToken", result.token);
       await SecureStore.setItemAsync("userId", String(result.user.id));
       await SecureStore.setItemAsync("userName", result.user.name);
       await SecureStore.setItemAsync("userEmail", result.user.email);
-
-      console.log("Token sparad:", Boolean(await SecureStore.getItemAsync("authToken")));
 
       Alert.alert("Inloggad", `Välkommen ${result.user.name}!`, [
         {
@@ -60,125 +56,117 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.background}
+      style={styles.screen}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.container}>
-          <Text style={styles.pageTitle}>Logga in</Text>
+      <View style={styles.panel}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Recept</Text>
+            <Text style={styles.logo}>Logga in</Text>
 
-          <View style={styles.panel}>
-            <View style={styles.content}>
-              <Text style={styles.logo}>Recept</Text>
+            <Text style={styles.description}>Logga in för att se dina recept</Text>
 
-              <Text style={styles.description}>Logga in för att se dina recept</Text>
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="E-post"
+                placeholderTextColor="#858585"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                accessibilityLabel="E-post"
+                returnKeyType="next"
+              />
 
-              <View style={styles.form}>
+              <View style={styles.passwordContainer}>
                 <TextInput
-                  style={styles.input}
-                  placeholder="E-post"
+                  style={styles.passwordInput}
+                  placeholder="Lösenord"
                   placeholderTextColor="#858585"
-                  value={username}
-                  onChangeText={setUsername}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  keyboardType="email-address"
-                  accessibilityLabel="E-post"
-                  returnKeyType="next"
+                  accessibilityLabel="Lösenord"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
                 />
 
-                <View style={styles.passwordContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Lösenord"
-                    placeholderTextColor="#858585"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    accessibilityLabel="Lösenord"
-                    returnKeyType="done"
-                    onSubmitEditing={handleLogin}
-                  />
-
-                  <Pressable
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeButton}
-                    accessibilityRole="button"
-                    accessibilityLabel={showPassword ? "Dölj lösenord" : "Visa lösenord"}
-                  >
-                    <Ionicons
-                      name={showPassword ? "eye-outline" : "eye-off-outline"}
-                      size={21}
-                      color="#171717"
-                    />
-                  </Pressable>
-                </View>
-
                 <Pressable
-                  style={styles.primaryButton}
-                  onPress={handleLogin}
-                  disabled={loading}
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
                   accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Dölj lösenord" : "Visa lösenord"}
                 >
-                  {loading ? <ActivityIndicator color="#111111" /> : <Text style={styles.buttonText}>Logga in</Text>}
+                  <Ionicons
+                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                    size={21}
+                    color="#171717"
+                  />
                 </Pressable>
               </View>
 
-              <View style={styles.switchContainer}>
-                <Text style={styles.switchText}>Har du inget konto? </Text>
+              <Pressable
+                style={[styles.primaryButton, loading && styles.disabledButton]}
+                onPress={handleLogin}
+                disabled={loading}
+                accessibilityRole="button"
+              >
+                {loading ? <ActivityIndicator color="#111111" /> : <Text style={styles.buttonText}>Logga in</Text>}
+              </Pressable>
+            </View>
 
-                <Link
-                  href="/register"
-                  asChild
-                >
-                  <Pressable accessibilityRole="link">
-                    <Text style={styles.switchLink}>Skapa konto</Text>
-                  </Pressable>
-                </Link>
-              </View>
+            <View style={styles.switchContainer}>
+              <Text style={styles.switchText}>Har du inget konto? </Text>
+
+              <Link
+                href="/register"
+                asChild
+              >
+                <Pressable accessibilityRole="link">
+                  <Text style={styles.switchLink}>Skapa konto</Text>
+                </Pressable>
+              </Link>
             </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  screen: {
     flex: 1,
     backgroundColor: "#202020",
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 14,
-    paddingBottom: 20,
-  },
-  pageTitle: {
-    color: "#858585",
-    fontSize: 22,
-    marginBottom: 14,
-  },
   panel: {
     flex: 1,
-    minHeight: 650,
-    backgroundColor: "#ECF8F9",
-    borderRadius: 27,
+    backgroundColor: "#E0EEEE",
+    overflow: "hidden",
+    padding: 30,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 35,
   },
   content: {
     width: "100%",
     alignItems: "center",
+  },
+  title: {
+    fontSize: 25,
+    fontWeight: "800",
+    color: "#080808",
+    marginBottom: 12,
   },
   logo: {
     fontSize: 25,
@@ -204,7 +192,7 @@ const styles = StyleSheet.create({
     borderColor: "#CCCCCC",
     borderRadius: 18,
     paddingHorizontal: 14,
-    fontSize: 14,
+    fontSize: 16,
     color: "#111111",
   },
   passwordContainer: {
@@ -231,16 +219,19 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 43,
-    backgroundColor: "#F2E2E1",
+    backgroundColor: "#AEC9B7",
     borderWidth: 1,
     borderColor: "#A89A99",
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
+  disabledButton: {
+    opacity: 0.6,
+  },
   buttonText: {
     color: "#111111",
-    fontSize: 14,
+    fontSize: 17,
   },
   switchContainer: {
     flexDirection: "row",
@@ -249,11 +240,11 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   switchText: {
-    fontSize: 14,
+    fontSize: 17,
     color: "#111111",
   },
   switchLink: {
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: "700",
     color: "#111111",
   },

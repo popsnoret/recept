@@ -194,8 +194,12 @@ export default function AddRecipeScreen() {
               />
             </TouchableOpacity>
 
-            <Text style={styles.headerTitle}>{isEditing ? "Redigera recept" : "Nytt recept"}</Text>
-
+            <Text
+              style={styles.headerTitle}
+              pointerEvents="none"
+            >
+              {isEditing ? "Redigera" : "Nytt recept"}
+            </Text>
             {isEditing && (
               <TouchableOpacity
                 onPress={handleSave}
@@ -460,9 +464,6 @@ export default function AddRecipeScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#202020",
-    paddingHorizontal: 16,
-    paddingVertical: 18,
   },
 
   container: {
@@ -477,24 +478,25 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    minHeight: 70,
+    minHeight: 100,
     backgroundColor: "#F7FAFA",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
+    gap: 10,
+    paddingTop: 70,
+    paddingBottom: 30,
   },
-
   headerTitle: {
     fontSize: 21,
     fontWeight: "800",
     color: "#080808",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
   },
-
-  headerSpacer: {
-    width: 27,
-  },
-
   content: {
     padding: 18,
     paddingBottom: 35,
@@ -513,7 +515,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 14,
   },
-
   input: {
     minHeight: 48,
     backgroundColor: "#F7FAFA",
@@ -525,21 +526,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111",
   },
-
   twoColumns: {
     flexDirection: "row",
     gap: 12,
   },
-
   column: {
     flex: 1,
   },
-
   difficultyRow: {
     flexDirection: "row",
     gap: 8,
   },
-
   difficultyButton: {
     flex: 1,
     minHeight: 43,
@@ -550,22 +547,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   difficultyButtonActive: {
     backgroundColor: "#AEC9B7",
     borderColor: "#AEC9B7",
   },
-
   difficultyText: {
     fontSize: 14,
     color: "#222",
   },
-
   difficultyTextActive: {
     fontWeight: "700",
     color: "#111",
   },
-
   imagePickerButton: {
     minHeight: 110,
     borderRadius: 16,
@@ -578,24 +571,20 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-
   imagePickerText: {
     fontSize: 15,
     fontWeight: "600",
     color: "#263D30",
   },
-
   imagePreviewContainer: {
     position: "relative",
     marginTop: 4,
   },
-
   imagePreview: {
     width: "100%",
     height: 200,
     borderRadius: 16,
   },
-
   removeImageButton: {
     position: "absolute",
     top: 8,
@@ -603,18 +592,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7FAFA",
     borderRadius: 20,
   },
-
   changeImageButton: {
     alignSelf: "flex-start",
     paddingVertical: 10,
   },
-
   changeImageText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#263D30",
   },
-
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -622,50 +608,42 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 10,
   },
-
   sectionTitle: {
     fontSize: 19,
     fontWeight: "800",
     color: "#111",
   },
-
   addItemButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingVertical: 5,
   },
-
   addItemText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#263D30",
   },
-
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginBottom: 9,
   },
-
   itemNumber: {
     width: 18,
     fontSize: 15,
     color: "#333",
   },
-
   itemInput: {
     flex: 1,
   },
-
   instructionInputRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
     marginBottom: 10,
   },
-
   instructionNumber: {
     width: 26,
     height: 26,
@@ -679,19 +657,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 10,
   },
-
   instructionInput: {
     flex: 1,
     minHeight: 76,
     paddingTop: 12,
   },
-
   error: {
     color: "#B42318",
     fontSize: 14,
     marginTop: 15,
   },
-
   saveButton: {
     minHeight: 52,
     backgroundColor: "#AEC9B7",
@@ -702,46 +677,44 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 28,
   },
-
   saveButtonText: {
     fontSize: 17,
     fontWeight: "800",
     color: "#111",
   },
-
   requiredNote: {
     fontSize: 12,
     color: "#555",
     textAlign: "center",
     marginTop: 12,
   },
-
   loadingScreen: {
     flex: 1,
     backgroundColor: "#E0EEEE",
     alignItems: "center",
     justifyContent: "center",
   },
-
   loadingText: {
     fontSize: 16,
     color: "#111",
   },
-
   headerButton: {
     width: 44,
     height: 44,
     alignItems: "flex-start",
     justifyContent: "center",
   },
-
   headerSaveButton: {
     minWidth: 44,
     minHeight: 44,
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#AEC9B7",
+    borderRadius: 28,
+    width: 75,
+    flexDirection: "row",
+    gap: 8,
   },
-
   headerSaveText: {
     fontSize: 16,
     fontWeight: "700",

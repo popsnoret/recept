@@ -60,11 +60,10 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.container}>
-          <Text style={styles.pageTitle}>Skapa användare</Text>
-
           <View style={styles.panel}>
             <View style={styles.content}>
-              <Text style={styles.logo}>Recept</Text>
+              <Text style={styles.title}>Recept</Text>
+              <Text style={styles.logo}>Logga in</Text>
 
               <Text style={styles.description}>
                 Skapa ett konto för att lägga till
@@ -164,33 +163,28 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 14,
-    paddingBottom: 20,
   },
-  pageTitle: {
-    color: "#858585",
-    fontSize: 22,
-    marginBottom: 14,
-  },
-  panel: {
-    flex: 1,
-    minHeight: 650,
-    backgroundColor: "#ECF8F9",
-    borderRadius: 27,
-    justifyContent: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 35,
-  },
-  content: {
-    width: "100%",
-    alignItems: "center",
+  title: {
+    fontSize: 25,
+    fontWeight: "800",
+    color: "#080808",
+    marginBottom: 12,
   },
   logo: {
     fontSize: 25,
     fontWeight: "800",
     color: "#080808",
     marginBottom: 12,
+  },
+  panel: {
+    flex: 1,
+    backgroundColor: "#E0EEEE",
+    justifyContent: "center",
+    padding: 30,
+  },
+  content: {
+    width: "100%",
+    alignItems: "center",
   },
   description: {
     color: "#111111",
@@ -210,7 +204,7 @@ const styles = StyleSheet.create({
     borderColor: "#CCCCCC",
     borderRadius: 18,
     paddingHorizontal: 14,
-    fontSize: 14,
+    fontSize: 16,
     color: "#111111",
   },
   passwordContainer: {
@@ -226,7 +220,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: "100%",
     paddingHorizontal: 14,
-    fontSize: 14,
+    fontSize: 16,
     color: "#111111",
   },
   eyeButton: {
@@ -237,7 +231,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     height: 43,
-    backgroundColor: "#F2E2E1",
+    backgroundColor: "#AEC9B7",
     borderWidth: 1,
     borderColor: "#A89A99",
     borderRadius: 24,
@@ -246,7 +240,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#111111",
-    fontSize: 14,
+    fontSize: 17,
   },
   switchContainer: {
     flexDirection: "row",
@@ -255,11 +249,11 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   switchText: {
-    fontSize: 14,
+    fontSize: 17,
     color: "#111111",
   },
   switchLink: {
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: "700",
     color: "#111111",
   },

@@ -370,9 +370,6 @@ function SectionHeading({ title }: { title: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#202020",
-    paddingHorizontal: 16,
-    paddingVertical: 18,
   },
   container: {
     flex: 1,
@@ -389,13 +386,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
+    paddingHorizontal: 20,
     gap: 10,
+    paddingTop: 70,
+    paddingBottom: 30,
   },
   title: {
-    flex: 1,
     textAlign: "center",
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "800",
     color: "#080808",
   },

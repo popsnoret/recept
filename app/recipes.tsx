@@ -232,9 +232,6 @@ export default function RecipesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#202020",
-    paddingHorizontal: 16,
-    paddingVertical: 18,
   },
   container: {
     flex: 1,
@@ -250,6 +247,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     gap: 10,
+    paddingTop: 70,
+    paddingBottom: 30,
   },
   heading: {
     fontSize: 25,

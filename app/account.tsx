@@ -69,13 +69,18 @@ export default function AccountScreen() {
             accessibilityRole="button"
           >
             <Ionicons
-              name="arrow-back"
-              size={25}
-              color="#080808"
+              name="chevron-back"
+              size={24}
+              color="#111"
             />
           </TouchableOpacity>
 
-          <Text style={styles.heading}>Mitt konto</Text>
+          <Text
+            style={styles.heading}
+            pointerEvents="none"
+          >
+            Mitt konto
+          </Text>
         </View>
 
         <ScrollView
@@ -192,15 +197,9 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   loadingScreen: {
     flex: 1,
-    backgroundColor: "#202020",
-    alignItems: "center",
-    justifyContent: "center",
   },
   screen: {
     flex: 1,
-    backgroundColor: "#202020",
-    paddingHorizontal: 16,
-    paddingVertical: 18,
   },
   container: {
     flex: 1,
@@ -209,25 +208,31 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   header: {
-    minHeight: 85,
+    minHeight: 100,
     backgroundColor: "#F7FAFA",
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    gap: 14,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 24,
-    backgroundColor: "#AEC9B7",
-    alignItems: "center",
-    justifyContent: "center",
+    gap: 10,
+    paddingTop: 70,
+    paddingBottom: 30,
   },
   heading: {
-    fontSize: 25,
+    fontSize: 21,
     fontWeight: "800",
     color: "#080808",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    alignItems: "center",
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
   content: {
     padding: 20,
