@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { apiRequest } from "../services/api";
@@ -74,6 +75,19 @@ export default function RecipesScreen() {
 
   const visibleRecipes = activeTab === "Favoriter" ? recipes.filter((recipe) => favorites.includes(String(recipe.id))) : activeTab === "Listor" ? [] : recipes;
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function checkLoginStatus() {
+        const token = await SecureStore.getItemAsync("authToken");
+        setIsLoggedIn(Boolean(token));
+      }
+
+      checkLoginStatus();
+    }, []),
+  );
+
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" />
@@ -81,7 +95,10 @@ export default function RecipesScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.heading}>Dina recept</Text>
-
+          <View style={styles.loginStatus}>
+            <View style={[styles.statusDot, { backgroundColor: isLoggedIn ? "#43865A" : "#858585" }]} />
+            <Text style={styles.statusText}>{isLoggedIn ? "Inloggad" : "Inte inloggad"}</Text>
+          </View>
           <View style={styles.headerButtons}>
             <TouchableOpacity
               style={styles.profileButton}
@@ -338,6 +355,21 @@ const styles = StyleSheet.create({
     marginTop: 35,
     marginHorizontal: 20,
     fontSize: 17,
+    color: "#414747",
+  },
+  loginStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginVertical: 8,
+  },
+  statusDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+  statusText: {
+    fontSize: 13,
     color: "#414747",
   },
 });

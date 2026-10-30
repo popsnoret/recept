@@ -1,8 +1,61 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function AccountScreen() {
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const name = await SecureStore.getItemAsync("userName");
+        const email = await SecureStore.getItemAsync("userEmail");
+
+        if (!token) {
+          router.replace("/(auth)/login");
+          return;
+        }
+
+        setUserName(name ?? "Min profil");
+        setUserEmail(email ?? "");
+        setCheckingAuth(false);
+      } catch {
+        router.replace("/(auth)/login");
+      }
+    }
+
+    checkAuth();
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await SecureStore.deleteItemAsync("authToken");
+      await SecureStore.deleteItemAsync("userId");
+      await SecureStore.deleteItemAsync("userName");
+      await SecureStore.deleteItemAsync("userEmail");
+
+      router.replace("/(auth)/login");
+    } catch {
+      Alert.alert("Fel", "Det gick inte att logga ut. Försök igen.");
+    }
+  }
+
+  if (checkingAuth) {
+    return (
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator
+          size="large"
+          color="#AEC9B7"
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" />
@@ -13,6 +66,7 @@ export default function AccountScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
             accessibilityLabel="Tillbaka"
+            accessibilityRole="button"
           >
             <Ionicons
               name="arrow-back"
@@ -37,8 +91,8 @@ export default function AccountScreen() {
               />
             </View>
 
-            <Text style={styles.name}>Min profil</Text>
-            <Text style={styles.email}>Dina kontouppgifter</Text>
+            <Text style={styles.name}>{userName}</Text>
+            <Text style={styles.email}>{userEmail}</Text>
           </View>
 
           <Text style={styles.sectionTitle}>Min receptsamling</Text>
@@ -46,6 +100,7 @@ export default function AccountScreen() {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.replace("/recipes")}
+            accessibilityRole="button"
           >
             <Ionicons
               name="book-outline"
@@ -63,6 +118,7 @@ export default function AccountScreen() {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.replace("/recipes")}
+            accessibilityRole="button"
           >
             <Ionicons
               name="heart-outline"
@@ -80,6 +136,7 @@ export default function AccountScreen() {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.replace("/recipes")}
+            accessibilityRole="button"
           >
             <Ionicons
               name="list-outline"
@@ -98,7 +155,8 @@ export default function AccountScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => alert("Funktionen för kontoinställningar kommer snart.")}
+            onPress={() => Alert.alert("Kontoinställningar", "Funktionen kommer snart.")}
+            accessibilityRole="button"
           >
             <Ionicons
               name="settings-outline"
@@ -115,7 +173,8 @@ export default function AccountScreen() {
 
           <TouchableOpacity
             style={styles.logoutButton}
-            onPress={() => router.replace("/(auth)/login")}
+            onPress={handleLogout}
+            accessibilityRole="button"
           >
             <Ionicons
               name="log-out-outline"
@@ -131,6 +190,12 @@ export default function AccountScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingScreen: {
+    flex: 1,
+    backgroundColor: "#202020",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   screen: {
     flex: 1,
     backgroundColor: "#202020",
