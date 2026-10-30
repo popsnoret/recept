@@ -1,7 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
+import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+
 import { apiRequest } from "../services/api";
 
 type Recipe = {
@@ -30,6 +33,19 @@ export default function AddRecipeScreen() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(Boolean(id));
 
+  async function pickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  }
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -53,7 +69,9 @@ export default function AddRecipeScreen() {
           setDifficulty(recipe.difficulty);
           setServings(String(recipe.servings));
           setImage(recipe.image || "");
+
           setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients.map((item) => item.text) : [""]);
+
           setInstructions(recipe.instructions.length > 0 ? recipe.instructions.map((item) => item.text) : [""]);
         } catch (error) {
           if (active) {
@@ -93,8 +111,9 @@ export default function AddRecipeScreen() {
       return;
     }
 
-    if (image.trim() && !/^https?:\/\/\S+$/i.test(image.trim())) {
-      setError("Ange en giltig bildlänk som börjar med http:// eller https://.");
+    // Kontrollera bildlänkar, men tillåt även lokala bild-URI:er.
+    if (image.trim().startsWith("http") && !/^https?:\/\/\S+$/i.test(image.trim())) {
+      setError("Ange en giltig bildlänk.");
       return;
     }
 
@@ -166,6 +185,7 @@ export default function AddRecipeScreen() {
               onPress={() => router.back()}
               accessibilityLabel="Tillbaka"
               accessibilityRole="button"
+              style={styles.headerButton}
             >
               <Ionicons
                 name="chevron-back"
@@ -176,7 +196,17 @@ export default function AddRecipeScreen() {
 
             <Text style={styles.headerTitle}>{isEditing ? "Redigera recept" : "Nytt recept"}</Text>
 
-            <View style={styles.headerSpacer} />
+            {isEditing && (
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel="Spara ändringar"
+                style={[styles.headerSaveButton, saving && { opacity: 0.6 }]}
+              >
+                <Text style={styles.headerSaveText}>{saving ? "Sparar..." : "Spara"}</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <ScrollView
@@ -184,9 +214,10 @@ export default function AddRecipeScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.intro}>{isEditing ? "Uppdatera informationen i ditt recept." : "Lägg till ett favoritrecept i din samling."}</Text>
+            {/* <Text style={styles.intro}>{isEditing ? "Uppdatera informationen i ditt recept." : "Lägg till ett recept."}</Text> */}
 
             <Text style={styles.label}>Receptnamn *</Text>
+
             <TextInput
               style={styles.input}
               placeholder="T.ex. Krämig pastasås"
@@ -199,6 +230,7 @@ export default function AddRecipeScreen() {
             <View style={styles.twoColumns}>
               <View style={styles.column}>
                 <Text style={styles.label}>Tillagningstid (min) *</Text>
+
                 <TextInput
                   style={styles.input}
                   placeholder="30"
@@ -211,6 +243,7 @@ export default function AddRecipeScreen() {
 
               <View style={styles.column}>
                 <Text style={styles.label}>Portioner *</Text>
+
                 <TextInput
                   style={styles.input}
                   placeholder="4"
@@ -223,6 +256,7 @@ export default function AddRecipeScreen() {
             </View>
 
             <Text style={styles.label}>Svårighetsgrad *</Text>
+
             <View style={styles.difficultyRow}>
               {(["Enkel", "Medel", "Svår"] as const).map((level) => (
                 <TouchableOpacity
@@ -230,35 +264,83 @@ export default function AddRecipeScreen() {
                   style={[styles.difficultyButton, difficulty === level && styles.difficultyButtonActive]}
                   onPress={() => setDifficulty(level)}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: difficulty === level }}
+                  accessibilityState={{
+                    selected: difficulty === level,
+                  }}
                 >
                   <Text style={[styles.difficultyText, difficulty === level && styles.difficultyTextActive]}>{level}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.label}>Bildlänk</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="https://..."
-              placeholderTextColor="#777"
-              value={image}
-              onChangeText={setImage}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
+            {/* Bildväljare */}
+
+            <Text style={styles.label}>Bild (valfritt)</Text>
+
+            {image ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image
+                  source={{ uri: image }}
+                  style={styles.imagePreview}
+                  accessibilityLabel="Förhandsvisning av receptbild"
+                />
+
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => setImage("")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ta bort bild"
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={28}
+                    color="#263D30"
+                  />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.imagePickerButton}
+                onPress={pickImage}
+                accessibilityRole="button"
+                accessibilityLabel="Lägg till bild"
+              >
+                <Ionicons
+                  name="camera-outline"
+                  size={28}
+                  color="#263D30"
+                />
+
+                <Text style={styles.imagePickerText}>Lägg till bild</Text>
+              </TouchableOpacity>
+            )}
+
+            {image !== "" && (
+              <TouchableOpacity
+                onPress={pickImage}
+                style={styles.changeImageButton}
+                accessibilityRole="button"
+              >
+                <Text style={styles.changeImageText}>Byt bild</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Ingredienser */}
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Ingredienser *</Text>
+
               <TouchableOpacity
                 style={styles.addItemButton}
                 onPress={() => setIngredients((current) => [...current, ""])}
+                accessibilityRole="button"
               >
                 <Ionicons
                   name="add-circle-outline"
                   size={21}
                   color="#263D30"
                 />
+
                 <Text style={styles.addItemText}>Lägg till</Text>
               </TouchableOpacity>
             </View>
@@ -294,17 +376,22 @@ export default function AddRecipeScreen() {
               </View>
             ))}
 
+            {/* Instruktioner */}
+
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Instruktioner *</Text>
+
               <TouchableOpacity
                 style={styles.addItemButton}
                 onPress={() => setInstructions((current) => [...current, ""])}
+                accessibilityRole="button"
               >
                 <Ionicons
                   name="add-circle-outline"
                   size={21}
                   color="#263D30"
                 />
+
                 <Text style={styles.addItemText}>Lägg till</Text>
               </TouchableOpacity>
             </View>
@@ -344,20 +431,23 @@ export default function AddRecipeScreen() {
 
             {error !== "" && <Text style={styles.error}>{error}</Text>}
 
-            <TouchableOpacity
-              style={[styles.saveButton, saving && { opacity: 0.6 }]}
-              onPress={handleSave}
-              disabled={saving}
-              accessibilityRole="button"
-              accessibilityLabel={isEditing ? "Spara ändringar" : "Spara recept"}
-            >
-              <Ionicons
-                name="checkmark-circle-outline"
-                size={22}
-                color="#111"
-              />
-              <Text style={styles.saveButtonText}>{saving ? "Sparar..." : isEditing ? "Spara ändringar" : "Spara recept"}</Text>
-            </TouchableOpacity>
+            {!isEditing && (
+              <TouchableOpacity
+                style={[styles.saveButton, saving && { opacity: 0.6 }]}
+                onPress={handleSave}
+                disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel="Spara recept"
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={22}
+                  color="#111"
+                />
+
+                <Text style={styles.saveButtonText}>{saving ? "Sparar..." : "Spara recept"}</Text>
+              </TouchableOpacity>
+            )}
 
             <Text style={styles.requiredNote}>* Obligatoriska fält</Text>
           </ScrollView>
@@ -374,15 +464,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 18,
   },
+
   container: {
     flex: 1,
     backgroundColor: "#E0EEEE",
     borderRadius: 30,
     overflow: "hidden",
   },
+
   keyboardView: {
     flex: 1,
   },
+
   header: {
     minHeight: 70,
     backgroundColor: "#F7FAFA",
@@ -391,23 +484,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 18,
   },
+
   headerTitle: {
     fontSize: 21,
     fontWeight: "800",
     color: "#080808",
   },
+
   headerSpacer: {
     width: 27,
   },
+
   content: {
     padding: 18,
     paddingBottom: 35,
   },
+
   intro: {
     fontSize: 15,
     color: "#414747",
     marginBottom: 22,
   },
+
   label: {
     fontSize: 15,
     fontWeight: "700",
@@ -415,6 +513,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 14,
   },
+
   input: {
     minHeight: 48,
     backgroundColor: "#F7FAFA",
@@ -426,17 +525,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111",
   },
+
   twoColumns: {
     flexDirection: "row",
     gap: 12,
   },
+
   column: {
     flex: 1,
   },
+
   difficultyRow: {
     flexDirection: "row",
     gap: 8,
   },
+
   difficultyButton: {
     flex: 1,
     minHeight: 43,
@@ -447,18 +550,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   difficultyButtonActive: {
     backgroundColor: "#AEC9B7",
     borderColor: "#AEC9B7",
   },
+
   difficultyText: {
     fontSize: 14,
     color: "#222",
   },
+
   difficultyTextActive: {
     fontWeight: "700",
     color: "#111",
   },
+
+  imagePickerButton: {
+    minHeight: 110,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#B8CCC1",
+    borderStyle: "dashed",
+    backgroundColor: "#F7FAFA",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+
+  imagePickerText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#263D30",
+  },
+
+  imagePreviewContainer: {
+    position: "relative",
+    marginTop: 4,
+  },
+
+  imagePreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 16,
+  },
+
+  removeImageButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#F7FAFA",
+    borderRadius: 20,
+  },
+
+  changeImageButton: {
+    alignSelf: "flex-start",
+    paddingVertical: 10,
+  },
+
+  changeImageText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#263D30",
+  },
+
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -466,42 +622,50 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 10,
   },
+
   sectionTitle: {
     fontSize: 19,
     fontWeight: "800",
     color: "#111",
   },
+
   addItemButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingVertical: 5,
   },
+
   addItemText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#263D30",
   },
+
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginBottom: 9,
   },
+
   itemNumber: {
     width: 18,
     fontSize: 15,
     color: "#333",
   },
+
   itemInput: {
     flex: 1,
   },
+
   instructionInputRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
     marginBottom: 10,
   },
+
   instructionNumber: {
     width: 26,
     height: 26,
@@ -515,16 +679,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 10,
   },
+
   instructionInput: {
     flex: 1,
     minHeight: 76,
     paddingTop: 12,
   },
+
   error: {
     color: "#B42318",
     fontSize: 14,
     marginTop: 15,
   },
+
   saveButton: {
     minHeight: 52,
     backgroundColor: "#AEC9B7",
@@ -535,25 +702,49 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 28,
   },
+
   saveButtonText: {
     fontSize: 17,
     fontWeight: "800",
     color: "#111",
   },
+
   requiredNote: {
     fontSize: 12,
     color: "#555",
     textAlign: "center",
     marginTop: 12,
   },
+
   loadingScreen: {
     flex: 1,
     backgroundColor: "#E0EEEE",
     alignItems: "center",
     justifyContent: "center",
   },
+
   loadingText: {
     fontSize: 16,
     color: "#111",
+  },
+
+  headerButton: {
+    width: 44,
+    height: 44,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+
+  headerSaveButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+
+  headerSaveText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#263D30",
   },
 });
