@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-
 import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { apiRequest } from "../services/api";
@@ -33,16 +32,64 @@ export default function AddRecipeScreen() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(Boolean(id));
 
-  async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
+  function pickImage() {
+    Alert.alert("Lägg till receptbild", "Hur vill du lägga till en bild?", [
+      {
+        text: "Ta ett foto",
+        onPress: () => selectImage("camera"),
+      },
+      {
+        text: "Välj från bilder",
+        onPress: () => selectImage("library"),
+      },
+      {
+        text: "Avbryt",
+        style: "cancel",
+      },
+    ]);
+  }
 
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
+  async function selectImage(source: "camera" | "library") {
+    try {
+      let result;
+
+      if (source === "camera") {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+        if (!permission.granted) {
+          Alert.alert("Behörighet saknas", "Du behöver tillåta åtkomst till kameran.");
+          return;
+        }
+
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.8,
+        });
+      } else {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permission.granted) {
+          Alert.alert("Behörighet saknas", "Du behöver tillåta åtkomst till dina bilder.");
+          return;
+        }
+
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.8,
+        });
+      }
+
+      if (!result.canceled) {
+        setImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Bildfel:", error);
+
+      Alert.alert("Fel", error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -137,12 +184,7 @@ export default function AddRecipeScreen() {
           body: recipeData,
         });
 
-        Alert.alert("Recept uppdaterat", "Dina ändringar har sparats.", [
-          {
-            text: "OK",
-            onPress: () => router.replace(`/recipe/${id}`),
-          },
-        ]);
+        router.replace(`/recipe/${id}`);
       } else {
         await apiRequest("/recipes", {
           method: "POST",
@@ -443,12 +485,6 @@ export default function AddRecipeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Spara recept"
               >
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={22}
-                  color="#111"
-                />
-
                 <Text style={styles.saveButtonText}>{saving ? "Sparar..." : "Spara recept"}</Text>
               </TouchableOpacity>
             )}
@@ -479,23 +515,19 @@ const styles = StyleSheet.create({
 
   header: {
     minHeight: 100,
-    backgroundColor: "#F7FAFA",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    gap: 10,
     paddingTop: 70,
     paddingBottom: 30,
   },
   headerTitle: {
+    flex: 1,
+    textAlign: "center",
     fontSize: 21,
     fontWeight: "800",
     color: "#080808",
-    position: "absolute",
-    left: 0,
-    right: 0,
-    textAlign: "center",
   },
   content: {
     padding: 18,

@@ -1,13 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 
 export default function AccountScreen() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
@@ -15,6 +18,10 @@ export default function AccountScreen() {
         const token = await SecureStore.getItemAsync("authToken");
         const name = await SecureStore.getItemAsync("userName");
         const email = await SecureStore.getItemAsync("userEmail");
+        const userId = await SecureStore.getItemAsync("userId");
+        const savedImage = userId ? await SecureStore.getItemAsync(`profileImage_${userId}`) : null;
+
+        setProfileImage(savedImage);
 
         if (!token) {
           router.replace("/(auth)/login");
@@ -31,6 +38,33 @@ export default function AccountScreen() {
 
     checkAuth();
   }, []);
+
+  async function pickProfileImage() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert("Behörighet saknas", "Du behöver tillåta åtkomst till dina bilder.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      const imageUri = result.assets[0].uri;
+
+      setProfileImage(imageUri);
+      const userId = await SecureStore.getItemAsync("userId");
+
+      if (userId) {
+        await SecureStore.setItemAsync(`profileImage_${userId}`, imageUri);
+      }
+    }
+  }
 
   async function handleLogout() {
     try {
@@ -70,7 +104,7 @@ export default function AccountScreen() {
           >
             <Ionicons
               name="chevron-back"
-              size={24}
+              size={27}
               color="#111"
             />
           </TouchableOpacity>
@@ -88,12 +122,50 @@ export default function AccountScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.profile}>
-            <View style={styles.avatar}>
-              <Ionicons
-                name="person-outline"
-                size={42}
-                color="#080808"
-              />
+            <View style={styles.avatarWrapper}>
+              <View style={styles.avatar}>
+                {profileImage ? (
+                  <Image
+                    source={{ uri: profileImage }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <Svg
+                    width={112}
+                    height={112}
+                    viewBox="0 0 76 76"
+                  >
+                    <Circle
+                      cx="38"
+                      cy="27"
+                      r="15"
+                      fill="none"
+                      stroke="#000"
+                      strokeWidth="2.5"
+                    />
+                    <Path
+                      d="M8 68 C12 48 26 42 38 42 C50 42 64 48 68 68"
+                      fill="none"
+                      stroke="#000"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={styles.editIcon}
+                onPress={pickProfileImage}
+                accessibilityRole="button"
+                accessibilityLabel="Byt profilbild"
+              >
+                <Ionicons
+                  name="pencil"
+                  size={16}
+                  color="#080808"
+                />
+              </TouchableOpacity>
             </View>
 
             <Text style={styles.name}>{userName}</Text>
@@ -209,24 +281,19 @@ const styles = StyleSheet.create({
   },
   header: {
     minHeight: 100,
-    backgroundColor: "#F7FAFA",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    gap: 10,
     paddingTop: 70,
     paddingBottom: 30,
   },
   heading: {
+    flex: 2,
+    textAlign: "center",
     fontSize: 21,
     fontWeight: "800",
     color: "#080808",
-    position: "absolute",
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    alignItems: "center",
   },
   backButton: {
     width: 32,
@@ -243,6 +310,12 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     marginBottom: 20,
   },
+  avatarWrapper: {
+    width: 86,
+    height: 86,
+    marginBottom: 14,
+    position: "relative",
+  },
   avatar: {
     width: 86,
     height: 86,
@@ -251,6 +324,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 43,
   },
   name: {
     fontSize: 22,
@@ -300,5 +379,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#080808",
+  },
+  editIcon: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 13,
+    backgroundColor: "#F7FAFA",
+    borderWidth: 1,
+    borderColor: "#AEC9B7",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 import { apiRequest } from "../services/api";
 
 type Recipe = {
@@ -22,6 +23,7 @@ export default function RecipesScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingFavorites, setUpdatingFavorites] = useState<number[]>([]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const loadRecipes = useCallback(async () => {
     try {
@@ -40,6 +42,19 @@ export default function RecipesScreen() {
     useCallback(() => {
       loadRecipes();
     }, [loadRecipes]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      async function loadProfileImage() {
+        const userId = await SecureStore.getItemAsync("userId");
+        const savedImage = userId ? await SecureStore.getItemAsync(`profileImage_${userId}`) : null;
+
+        setProfileImage(savedImage);
+      }
+
+      loadProfileImage();
+    }, []),
   );
 
   async function toggleFavorite(id: number) {
@@ -77,17 +92,6 @@ export default function RecipesScreen() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      async function checkLoginStatus() {
-        const token = await SecureStore.getItemAsync("authToken");
-        setIsLoggedIn(Boolean(token));
-      }
-
-      checkLoginStatus();
-    }, []),
-  );
-
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" />
@@ -95,22 +99,42 @@ export default function RecipesScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.heading}>Dina recept</Text>
-          <View style={styles.loginStatus}>
-            <View style={[styles.statusDot, { backgroundColor: isLoggedIn ? "#43865A" : "#858585" }]} />
-            <Text style={styles.statusText}>{isLoggedIn ? "Inloggad" : "Inte inloggad"}</Text>
-          </View>
           <View style={styles.headerButtons}>
-            <TouchableOpacity
+            <Pressable
               style={styles.profileButton}
               onPress={() => router.push("/account")}
+              accessibilityRole="button"
               accessibilityLabel="Mitt konto"
             >
-              <Ionicons
-                name="person-outline"
-                size={28}
-                color="#000"
-              />
-            </TouchableOpacity>
+              {profileImage ? (
+                <Image
+                  source={{ uri: profileImage }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <Svg
+                  width={50}
+                  height={50}
+                  viewBox="0 0 76 76"
+                >
+                  <Circle
+                    cx="38"
+                    cy="27"
+                    r="15"
+                    fill="none"
+                    stroke="#000"
+                    strokeWidth="2.5"
+                  />
+                  <Path
+                    d="M8 68 C12 48 26 42 38 42 C50 42 64 48 68 68"
+                    fill="none"
+                    stroke="#000"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                </Svg>
+              )}
+            </Pressable>
 
             <TouchableOpacity
               style={styles.addButton}
@@ -168,12 +192,7 @@ export default function RecipesScreen() {
                     />
 
                     <View style={styles.recipeInfo}>
-                      <Text
-                        style={styles.recipeTitle}
-                        numberOfLines={1}
-                      >
-                        {recipe.title}
-                      </Text>
+                      <Text style={styles.recipeTitle}>{recipe.title}</Text>
 
                       <View style={styles.details}>
                         <Ionicons
@@ -241,7 +260,7 @@ const styles = StyleSheet.create({
   },
   header: {
     minHeight: 100,
-    backgroundColor: "#F7FAFA",
+    // backgroundColor: "#F7FAFA",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -264,10 +283,11 @@ const styles = StyleSheet.create({
   profileButton: {
     width: 44,
     height: 44,
-    borderRadius: 24,
+    borderRadius: 22,
     backgroundColor: "#AEC9B7",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   addButton: {
     width: 44,
@@ -314,7 +334,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 5,
   },
   recipeImage: {
     width: 62,
@@ -370,5 +390,10 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 13,
     color: "#414747",
+  },
+  profileImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 22,
   },
 });

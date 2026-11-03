@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS recipes (
     description TEXT,
     ingredients TEXT NOT NULL,
     instructions TEXT NOT NULL,
+    cooking_time INT NOT NULL DEFAULT 30,
+    difficulty VARCHAR(20) NOT NULL DEFAULT 'Enkel',
+    image VARCHAR(1000) NOT NULL DEFAULT '',
+    servings INT NOT NULL DEFAULT 4,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,

@@ -192,16 +192,12 @@ export default function RecipeDetailsScreen() {
             >
               <Ionicons
                 name="chevron-back"
-                size={24}
+                size={27}
                 color="#111"
               />
             </TouchableOpacity>
-            <Text
-              style={styles.title}
-              numberOfLines={1}
-            >
-              {recipe.title}
-            </Text>
+
+            <Text style={styles.title}>{recipe.title}</Text>
 
             <TouchableOpacity
               onPress={toggleFavorite}
@@ -382,7 +378,7 @@ const styles = StyleSheet.create({
   },
   header: {
     minHeight: 100,
-    backgroundColor: "#F7FAFA",
+    // backgroundColor: "#F7FAFA",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -392,6 +388,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   title: {
+    flex: 1,
     textAlign: "center",
     fontSize: 20,
     fontWeight: "800",

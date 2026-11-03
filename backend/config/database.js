@@ -1,7 +1,9 @@
 // Configures the MySQL database connection using environment variables.
 // Exports a connection pool that can be reused across the backend.
 
-require("dotenv").config({ path: "../.env" });
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../../.env"),
+});
 
 const mysql = require("mysql2/promise");
 

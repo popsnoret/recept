@@ -41,12 +41,7 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync("userName", result.user.name);
       await SecureStore.setItemAsync("userEmail", result.user.email);
 
-      Alert.alert("Inloggad", `Välkommen ${result.user.name}!`, [
-        {
-          text: "Fortsätt",
-          onPress: () => router.replace("/recipes"),
-        },
-      ]);
+      router.replace("/recipes");
     } catch (error) {
       Alert.alert("Kunde inte logga in", error instanceof Error ? error.message : "Ett oväntat fel uppstod.");
     } finally {

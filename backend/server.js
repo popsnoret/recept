@@ -5,6 +5,11 @@ const authenticateToken = require("./middleware/auth");
 const recipeRoutes = require("./routes/recipes");
 const favoriteRoutes = require("./routes/favorites");
 
+// Kontrollera att JWT-hemligheten finns
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET saknas i miljövariablerna.");
+}
+
 const app = express();
 const PORT = 3000;
 
