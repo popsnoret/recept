@@ -1,0 +1,33 @@
+name: CI - Dina recept
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hämta koden
+        uses: actions/checkout@v4
+
+      - name: Installera Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Installera beroenden
+        working-directory: backend
+        run: npm ci
+
+      - name: Kör tester
+        working-directory: backend
+        run: npm test
+
+      - name: Bygg Docker-image
+        run: docker build -t dina-recept-backend ./backend

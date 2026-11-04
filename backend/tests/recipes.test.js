@@ -60,12 +60,17 @@ describe("Recept API – autentisering", () => {
     pool.query.mockResolvedValueOnce([{ affectedRows: 0 }]);
     pool.query.mockResolvedValueOnce([[]]);
 
-    const response = await request(app).put("/api/recipes/1").set("Authorization", `Bearer ${token}`).send({
-      title: "Ändrat recept",
-      description: "Beskrivning",
-      ingredients: "Mjöl",
-      instructions: "Blanda.",
-    });
+    const response = await request(app)
+      .put("/api/recipes/1")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        title: "Ändrat recept",
+        cookingTime: 30,
+        difficulty: "Enkel",
+        servings: 4,
+        ingredients: ["Mjöl"],
+        instructions: ["Blanda."],
+      });
 
     expect(response.status).toBe(404);
     expect(response.body.message).toBe("Receptet hittades inte.");
