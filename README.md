@@ -48,19 +48,40 @@ Varje recept kopplas till användaren som har skapat det. Användarkonton och re
 - **MySQL** – databas
 - **JWT** – autentisering
 - **bcrypt** – säker lösenordshashning
-- **Docker** – paketering och driftsättning
+- **Docker och Docker Compose** – containerisering och driftsättning
+- **GitHub Actions** – automatiserad testning och deployment
 - **AWS EC2** – server för backend och databas
 - **Nginx** – reverse proxy
 - **DuckDNS och Let's Encrypt** – domän och HTTPS
+
+## CI/CD
+
+Projektet använder GitHub Actions för Continuous Integration (CI) och Continuous Deployment (CD).
+
+Vid push till `main` körs automatiskt följande steg:
+
+1. GitHub Actions hämtar den senaste koden.
+2. Backendens beroenden installeras.
+3. Automatiska tester körs med Jest.
+4. En Docker-image byggs.
+5. Om testerna och Docker-bygget lyckas ansluter GitHub Actions till AWS EC2 via SSH.
+6. Den senaste koden hämtas till servern och backend byggs om och startas om med Docker Compose.
+
+Vid pull requests till `main` körs testerna och Docker-bygget, men ingen deployment genomförs.
+
+På så sätt kontrolleras koden automatiskt innan en ny version driftsätts.
 
 ## Deployment
 
 Backend och databas är driftsatta på en AWS EC2-server med Docker Compose.
 
-API:  
-https://dinarecept.duckdns.org/api
+API-adress: https://dinarecept.duckdns.org
 
-Servern är konfigurerad för att starta om applikationens containrar automatiskt vid omstart. HTTPS används för säker kommunikation mellan appen och backend.
+Backend och databas körs i separata Docker-containrar. MySQL använder en persistent Docker-volym så att sparad data finns kvar när containrar startas om.
+
+Nginx fungerar som reverse proxy och HTTPS används för säker kommunikation mellan appen och backend.
+
+Deployment av backend sker automatiskt via GitHub Actions när ändringar pushas till `main` och samtliga kontroller godkänns.
 
 ## Lokal utveckling
 
