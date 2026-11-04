@@ -1,8 +1,8 @@
 # Dina recept
 
 <p align="center">
-  <img src="screenshots/login.jpeg" width="250" />
-  <img src="screenshots/home.jpeg" width="250" />
+  <img src="screenshots/login.png" width="250" />
+  <img src="screenshots/home.png" width="250" />
 </p>
 
 ## Om appen
