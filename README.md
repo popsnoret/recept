@@ -1,8 +1,9 @@
 # Dina recept
 
-![Inloggning](screenshots/login.jpeg)
-
-![Startsida](screenshots/home.jpeg)
+<p align="center">
+  <img src="screenshots/login.jpeg" width="250" />
+  <img src="screenshots/home.jpeg" width="250" />
+</p>
 
 ## Om appen
 
