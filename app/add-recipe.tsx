@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -46,6 +47,7 @@ export default function AddRecipeScreen() {
   const [loading, setLoading] = useState(Boolean(id));
 
   function pickImage() {
+    Keyboard.dismiss();
     Alert.alert("Lägg till receptbild", "Hur vill du lägga till en bild?", [
       {
         text: "Ta ett foto",

@@ -62,8 +62,8 @@ export default function RegisterScreen() {
         <View style={styles.container}>
           <View style={styles.panel}>
             <View style={styles.content}>
-              <Text style={styles.title}>Recept</Text>
-              <Text style={styles.logo}>Logga in</Text>
+              <Text style={styles.title}>Dina recept</Text>
+              <Text style={styles.logo}>Skapa konto</Text>
 
               <Text style={styles.description}>
                 Skapa ett konto för att lägga till
@@ -165,10 +165,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 25,
-    fontWeight: "800",
-    color: "#080808",
-    marginBottom: 12,
+    fontSize: 36,
+    fontWeight: "700",
+    fontFamily: "serif",
+    color: "#294B35",
+    marginBottom: 38,
+    letterSpacing: -0.5,
   },
   logo: {
     fontSize: 25,
