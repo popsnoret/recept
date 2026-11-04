@@ -2,7 +2,20 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { apiRequest } from "../services/api";
 
@@ -208,6 +221,10 @@ export default function AddRecipeScreen() {
   if (loading) {
     return (
       <View style={styles.loadingScreen}>
+        <ActivityIndicator
+          size="large"
+          color="#263D30"
+        />
         <Text style={styles.loadingText}>Hämtar recept...</Text>
       </View>
     );
@@ -250,7 +267,7 @@ export default function AddRecipeScreen() {
                 accessibilityLabel="Spara ändringar"
                 style={[styles.headerSaveButton, saving && { opacity: 0.6 }]}
               >
-                <Text style={styles.headerSaveText}>{saving ? "Sparar..." : "Spara"}</Text>
+                {saving ? <ActivityIndicator color="#263D30" /> : <Text style={styles.headerSaveText}>Spara</Text>}
               </TouchableOpacity>
             )}
           </View>
