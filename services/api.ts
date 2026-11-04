@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "http://192.168.0.65:3000/api";
+const API_URL = "https://dinarecept.duckdns.org/api";
 
 type ApiOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE";
